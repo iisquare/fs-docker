@@ -69,8 +69,8 @@ services:
       - "${BIND_ADDRESS}${BIND_COLON}${ELASTICSEARCH_CLIENT_PORT}:9300"
     volumes:
       - ${DATA_DIR}/elasticsearch:/usr/share/elasticsearch/data
-      - ./service/elasticsearch/IKAnalyzer.cfg.xml:/usr/share/elasticsearch/plugins/analysis-ik-online/IKAnalyzer.cfg.xml
-      - ./service/elasticsearch/java.policy:/usr/share/elasticsearch/jdk/conf/security/java.policy
+      # - ./service/elasticsearch/IKAnalyzer.cfg.xml:/usr/share/elasticsearch/plugins/analysis-ik-online/IKAnalyzer.cfg.xml
+      # - ./service/elasticsearch/java.policy:/usr/share/elasticsearch/jdk/conf/security/java.policy
   kibana:
     build:
       context: ./service/kibana
