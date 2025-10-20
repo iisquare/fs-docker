@@ -6,8 +6,6 @@ binlog_expire_logs_seconds=604800
 transaction-isolation=READ-COMMITTED
 default-time-zone='+8:00'
 
-binlog-ignore-db=canal-admin
-binlog-ignore-db=canal-tsdb
 binlog-ignore-db=information_schema
 binlog-ignore-db=fs-project
 binlog-ignore-db=mysql
