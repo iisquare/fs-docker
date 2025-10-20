@@ -49,7 +49,7 @@ mysql: [Warning] World-writable config file '/etc/mysql/conf.d/mysql.cnf' is ign
 ```
 mysqld: Cannot change permissions of the file 'ca.pem' (OS errno 1 - Operation not permitted)
 ```
-- 低版本客户端无法支撑导入导出数据
+- 低版本客户端无法支撑导入导出数据(9.x版本已移除)
 ```
 mysqldump: Got error: 2059: Authentication plugin 'caching_sha2_password' cannot be loaded
 sudo docker-compose exec mysql mysql -h 127.0.0.1 -p
@@ -59,4 +59,11 @@ select host,user,plugin from mysql.user;
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'admin888' PASSWORD EXPIRE NEVER; # 修改加密规则 
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'admin888'; # 更新一下用户的密码 
 FLUSH PRIVILEGES; # 刷新权限
+```
+- DBeaver工具导入导出异常
+```
+mysqldump: Got error: 2059: Authentication plugin 'caching_sha2_password' cannot be loaded:
+访问[MySQL Community Downloads](https://dev.mysql.com/downloads/)
+选择MySQL Community Server地址，下载Windows (x86, 64-bit), ZIP Archive并提取压缩包bin目录，
+全部解压到C:\Users\用户名\AppData\Roaming\DBeaverData\drivers\clients\mysql\win目录，避免依赖缺失。
 ```

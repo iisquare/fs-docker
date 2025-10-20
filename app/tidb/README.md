@@ -4,6 +4,19 @@ TiDB单节点集群。
 
 单机`pingcap/tidb`独立运行时，默认使用 goleveldb 存储。
 
+## 如何使用
+
+### 修改用户密码
+
+```
+ALTER USER 'username'@'%' IDENTIFIED BY 'new_password';
+SET PASSWORD FOR 'username'@'%' = PASSWORD('new_password');
+vi /etc/tidb/tidb.toml
+[security]
+user = "root"
+password = "new_password"
+```
+
 ## [TiDB 整体架构](https://docs.pingcap.com/zh/tidb/stable/tidb-architecture/)
 
 ### TiDB Server
