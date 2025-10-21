@@ -35,3 +35,18 @@ FROM t
 CROSS JOIN counter;
 
 ```
+
+### 测试用例
+
+```sql
+-- 146422351，首次查询8.7s，多次平均8.2s
+select count(*) from t;
+-- 146421351，首次查询10.7s，多次平均3.6s
+select count(*) from t where id > 1000 and id < 299999999;
+-- 首次查询19.6s，多次平均16.2s
+select count(*) as ct, dept from t group by dept order by ct asc;
+-- 首次查询7ms，多次平均2ms
+select * from t where id = 237895;
+-- 首次查询14ms，多次平均3ms
+select * from t where id in (82388454, 2142356, 7654213, 26819820943);
+```

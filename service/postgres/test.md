@@ -55,3 +55,18 @@ $$;
 call public.test_insert_procedure();
 
 ```
+
+### 测试用例
+
+```sql
+-- 134217728，首次查询23.8s，多次平均6.2s
+select count(*) from t;
+-- 134216729，首次查询8.5s，多次平均7.5s
+select count(*) from t where id > 1000 and id < 299999999;
+-- 首次查询32.5s，多次平均6.9s
+select count(*) as ct, dept from t group by dept order by ct asc;
+-- 首次查询5ms，多次平均1ms
+select * from t where id = 237895;
+-- 首次查询4ms，多次平均1ms
+select * from t where id in (82388454, 2142356, 7654213, 26819820943);
+```
