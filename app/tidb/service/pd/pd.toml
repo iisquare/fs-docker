@@ -1,0 +1,11 @@
+# https://github.com/tikv/pd/blob/release-8.5/conf/config.toml
+
+name = "pd"
+data-dir = "/data/pd"
+initial-cluster = "pd=http://pd:2380"
+initial-cluster-state = "new"
+
+peer-urls = "http://0.0.0.0:2380"
+advertise-peer-urls = "http://pd:2380"
+client-urls = "http://0.0.0.0:2379"
+advertise-client-urls = "http://pd:2379"

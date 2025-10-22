@@ -49,4 +49,5 @@ TiFlash 是一类特殊的存储节点。和普通 TiKV 节点不一样的是，
 ## 参考链接
 
 - [轻松上手：使用 Docker Compose 部署 TiDB 的简易指南](https://tidb.net/blog/26924a6e)
-- [TIDB 参数解释](https://www.cnblogs.com/mowei/p/7257761.html)
+- [TiDB 配置文件参数](https://docs.pingcap.com/zh/tidb/stable/tidb-configuration-file/)
+- [TiDB 命令行配置参数](https://docs.pingcap.com/zh/tidb/stable/command-line-flags-for-tidb-configuration/)

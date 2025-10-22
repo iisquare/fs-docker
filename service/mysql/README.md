@@ -40,6 +40,22 @@ mysqldump -h127.0.0.1 -P3306 -uroot -p --databases test --tables t1 t2 > /path/t
 mysql> source /path/to/dump.sql
 ```
 
+### 锁
+```
+-- 查看锁信息
+SELECT * FROM sys.`innodb_lock_waits`;
+-- 查看当前被锁的语句
+SELECT * FROM performance_schema.events_statements_history WHERE thread_id IN(
+	SELECT b.`THREAD_ID` FROM sys.`innodb_lock_waits` AS a , performance_schema.threads AS b
+	WHERE a.waiting_pid = b.`PROCESSLIST_ID`
+) ORDER BY timer_start ASC;
+-- 看持有锁的语句
+SELECT * FROM performance_schema.events_statements_history WHERE thread_id IN(
+	SELECT b.`THREAD_ID` FROM sys.`innodb_lock_waits` AS a , performance_schema.threads AS b
+	WHERE a.`blocking_pid` = b.`PROCESSLIST_ID`
+) ORDER BY timer_start ASC;
+```
+
 ## 解决方案
 - 配置不生效，检查文件权限，确认配置被正常加载
 ```

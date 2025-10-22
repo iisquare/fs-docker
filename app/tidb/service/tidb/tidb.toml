@@ -1,0 +1,8 @@
+# https://github.com/pingcap/tidb/blob/release-8.5/pkg/config/config.toml.example
+
+store = "tikv"
+path = "pd:2379"
+
+[log]
+enable-slow-log = true
+slow-query-file = "/data/tidb/tidb-slow.log"

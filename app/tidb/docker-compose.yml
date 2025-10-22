@@ -5,6 +5,7 @@ services:
       args:
         - TIDB_VERSION=${TIDB_VERSION}
     container_name: tidb_pd
+    command: "--config=/etc/tidb/pd.toml"
     cap_add:
       - SYS_ADMIN
     security_opt:
@@ -13,12 +14,9 @@ services:
     ports:
       - "${BIND_ADDRESS}${BIND_COLON}${PD_CLIENT_PORT}:2379"
       - "${BIND_ADDRESS}${BIND_COLON}${PD_PEER_PORT}:2380"
-    environment:
-      - PD_SERVER_NAME=pd
-      - INITIAL_CLUSTER=pd=http://pd:2380
-      - ETCD_INITIAL_CLUSTER_STATE=new
     volumes:
-      - ${DATA_DIR}/pd:/pd
+      - ./service/pd/pd.toml:/etc/tidb/pd.toml
+      - ${DATA_DIR}/pd:/data/pd
 
   tikv:
     build:
@@ -26,6 +24,7 @@ services:
       args:
         - TIDB_VERSION=${TIDB_VERSION}
     container_name: tidb_tikv
+    command: "--config=/etc/tidb/tikv.toml"
     cap_add:
       - SYS_ADMIN
     security_opt:
@@ -34,12 +33,11 @@ services:
     ports:
       - "${BIND_ADDRESS}${BIND_COLON}${TIKV_SERVER_PORT}:20160"
       - "${BIND_ADDRESS}${BIND_COLON}${TIKV_STATUS_PORT}:20180"
-    environment:
-      - PD_ADDR=pd:2379
     depends_on:
       - pd
     volumes:
-      - ${DATA_DIR}/tikv:/tikv
+      - ./service/tikv/tikv.toml:/etc/tidb/tikv.toml
+      - ${DATA_DIR}/tikv:/data/tikv
 
   tidb:
     build:
@@ -47,6 +45,7 @@ services:
       args:
         - TIDB_VERSION=${TIDB_VERSION}
     container_name: tidb_server
+    command: "--config=/etc/tidb/tidb.toml"
     cap_add:
       - SYS_ADMIN
     security_opt:
@@ -55,15 +54,9 @@ services:
     ports:
       - "${BIND_ADDRESS}${BIND_COLON}${TIDB_SERVER_PORT}:4000"
       - "${BIND_ADDRESS}${BIND_COLON}${TIDB_STATUS_PORT}:10080"
-    environment:
-      - PATH="bin:$PATH"
-      - MYSQL_HOST=0.0.0.0
-      - MYSQL_PORT=4000
-      - STORE=tikv
-      - PATH=bin:$PATH
-      - PD_ADDR=pd:2379
     depends_on:
       - tikv
       - pd
     volumes:
-      - ${DATA_DIR}/tidb:/tidb
+      - ./service/tidb/tidb.toml:/etc/tidb/tidb.toml
+      - ${DATA_DIR}/tidb:/data/tidb
