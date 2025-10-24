@@ -4,7 +4,6 @@ services:
       context: ./service/pd
       args:
         - TIDB_VERSION=${TIDB_VERSION}
-    container_name: tidb_pd
     command: "--config=/etc/tidb/pd.toml"
     cap_add:
       - SYS_ADMIN
@@ -23,7 +22,6 @@ services:
       context: ./service/tikv
       args:
         - TIDB_VERSION=${TIDB_VERSION}
-    container_name: tidb_tikv
     command: "--config=/etc/tidb/tikv.toml"
     cap_add:
       - SYS_ADMIN
@@ -44,7 +42,6 @@ services:
       context: ./service/tidb
       args:
         - TIDB_VERSION=${TIDB_VERSION}
-    container_name: tidb_server
     command: "--config=/etc/tidb/tidb.toml"
     cap_add:
       - SYS_ADMIN

@@ -1,0 +1,40 @@
+services:
+  fe:
+    network_mode: host
+    build:
+      context: ./service/fe
+      args:
+        - DORIS_VERSION=${DORIS_VERSION}
+    hostname: fe
+    entrypoint: "/opt/apache-doris/fe/bin/start_fe.sh"
+    ports:
+      - "${BIND_ADDRESS}${BIND_COLON}${FE_HTTP_PORT}:8030"
+      - "${BIND_ADDRESS}${BIND_COLON}${FE_RPC_PORT}:9020"
+      - "${BIND_ADDRESS}${BIND_COLON}${FE_QUERY_PORT}:9030"
+      - "${BIND_ADDRESS}${BIND_COLON}${FE_EDIT_LOG_PORT}:9010"
+    volumes:
+      - ./service/fe/fe.conf:/opt/apache-doris/fe/conf/fe.conf
+      - ${DATA_DIR}/fe/doris-meta:/opt/apache-doris/fe/doris-meta
+      - ${DATA_DIR}/fe/log:/opt/apache-doris/fe/log
+      - ${DATA_DIR}/jdbc_drivers:/opt/apache-doris/fe/jdbc_drivers
+
+  be:
+    network_mode: host
+    build:
+      context: ./service/be
+      args:
+        - DORIS_VERSION=${DORIS_VERSION}
+    hostname: be
+    entrypoint: "/opt/apache-doris/be/bin/start_be.sh"
+    ports:
+      - "${BIND_ADDRESS}${BIND_COLON}${BE_PORT}:9060"
+      - "${BIND_ADDRESS}${BIND_COLON}${BE_WEBSERVER_PORT}:8040"
+      - "${BIND_ADDRESS}${BIND_COLON}${BE_HEARTBEAT_SERVICE_PORT}:9050"
+      - "${BIND_ADDRESS}${BIND_COLON}${BE_RPC_PORT}:8060"
+    depends_on:
+      - fe
+    volumes:
+      - ./service/be/be.conf:/opt/apache-doris/be/conf/be.conf
+      - ${DATA_DIR}/be/storage:/opt/apache-doris/be/storage
+      - ${DATA_DIR}/be/log:/opt/apache-doris/be/log
+      - ${DATA_DIR}/jdbc_drivers:/opt/apache-doris/be/jdbc_drivers
