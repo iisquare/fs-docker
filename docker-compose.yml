@@ -118,7 +118,6 @@ services:
       - "${BIND_ADDRESS}${BIND_COLON}${MYSQL_PORT}:3306"
     volumes:
       - ${DATA_DIR}/mysql:/var/lib/mysql
-      # - ./service/mysql/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
   mongo:
     build:
       context: ./service/mongo
@@ -136,10 +135,12 @@ services:
       context: ./service/redis
       args:
         - REDIS_VERSION=${REDIS_VERSION}
+    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "${BIND_ADDRESS}${BIND_COLON}${REDIS_PORT}:6379"
     volumes:
       - ${DATA_DIR}/redis:/data
+      - ./service/redis/etc/redis.conf:/usr/local/etc/redis/redis.conf:ro
   rabbitmq:
     build:
       context: ./service/rabbitmq
