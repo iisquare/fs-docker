@@ -11,10 +11,14 @@ RUN if [ -f /tmp/plugins/analysis-ik-online-0.0.1.zip ]; then \
     else \
         echo "⚠️ 未找到插件包，跳过安装"; \
     fi
-RUN rm -rf /tmp/plugins
 
-ENV discovery.type single-node
-ENV http.cors.enabled true
-ENV http.cors.allow-origin *
+USER root
+RUN rm -rf /tmp/plugins
+USER elasticsearch
+
+ENV discovery.type=single-node
+ENV xpack.security.enabled=true
+ENV http.cors.enabled=true
+ENV http.cors.allow-origin="'*'"
 
 EXPOSE 9200 9300
