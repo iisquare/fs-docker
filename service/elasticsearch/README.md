@@ -4,7 +4,8 @@
 
 ### 文件权限
 ```
-sudo chmod 777 /data/runtime/elasticsearch
+sudo mkdir -p /data/runtime/elasticsearch/data
+sudo chown -R 1000:0 /data/runtime/elasticsearch/data
 ```
 
 ## 最佳实践

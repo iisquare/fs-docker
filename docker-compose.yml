@@ -70,7 +70,7 @@ services:
       - "${BIND_ADDRESS}${BIND_COLON}${ELASTICSEARCH_HTTP_PORT}:9200"
       - "${BIND_ADDRESS}${BIND_COLON}${ELASTICSEARCH_CLIENT_PORT}:9300"
     volumes:
-      - ${DATA_DIR}/elasticsearch:/usr/share/elasticsearch/data
+      - ${DATA_DIR}/elasticsearch/data:/usr/share/elasticsearch/data
   kibana:
     build:
       context: ./service/kibana

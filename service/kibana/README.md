@@ -7,6 +7,8 @@
 - 生成服务账号令牌
 ```
 sudo docker-compose exec elasticsearch bin/elasticsearch-service-tokens create elastic/kibana kibana-token
+# 自行备份生成的令牌，若丢失需要重新生成并更新Kibana配置
+sudo docker-compose exec elasticsearch cat /usr/share/elasticsearch/config/service_tokens
 ```
 - 修改环境变量文件文件
 ```
