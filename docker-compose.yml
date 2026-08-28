@@ -262,7 +262,12 @@ services:
       args:
         - TRINO_VERSION=${TRINO_VERSION}
     ports:
-      - "${BIND_ADDRESS}${BIND_COLON}${TRINO_PORT}:8080"
+      - "${BIND_ADDRESS}${BIND_COLON}${TRINO_HTTP_PORT}:8080"
+      - "${BIND_ADDRESS}${BIND_COLON}${TRINO_HTTPS_PORT}:8443"
     volumes:
       - ${DATA_DIR}/trino/data:/data/trino
       - ./service/trino/etc/catalog:/etc/trino/catalog
+      - ./service/trino/etc/password.db:/etc/trino/password.db
+      - ./service/trino/etc/keystore.jks:/etc/trino/keystore.jks
+      - ./service/trino/etc/config.properties:/etc/trino/config.properties
+      - ./service/trino/etc/password-authenticator.properties:/etc/trino/password-authenticator.properties
