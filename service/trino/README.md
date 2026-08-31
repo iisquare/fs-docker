@@ -55,6 +55,22 @@ trino://{username}:{password}@{hostname}:{port}/{catalog}
 trino://admin@trino:8080/mysql
 ```
 
+### Elasticsearch数据源
+
+- 数组
+```
+POST /索引名称/_mapping
+{
+  "_meta": {
+    "trino": {
+      "字段名称": {
+        "isArray": true
+      }
+    }
+  }
+}
+```
+
 ## 参考
 - [Trino documentation](https://trino.io/docs/current/index.html)
 - [Presto安装部署详细说明](https://blog.csdn.net/jsbylibo/article/details/107821214)
