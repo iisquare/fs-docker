@@ -1,3 +1,4 @@
 /.env
 /service/elasticsearch/plugins/*.zip
 /service/trino/etc/config.properties
+/service/trino/plugins/*.zip
