@@ -1,5 +1,7 @@
 /.env
 /service/elasticsearch/plugins/*.zip
+/service/trino/etc/keystore.jks
+/service/trino/etc/password.db
 /service/trino/etc/config.properties
 /service/trino/etc/catalog/*.properties
 /service/trino/plugins/*.zip
