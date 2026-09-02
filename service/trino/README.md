@@ -16,7 +16,7 @@ keytool -genkeypair -alias trino -keyalg RSA -keystore ./service/trino/etc/keyst
 
 # 生成密码文件
 sudo apt install apache2-utils
-htpasswd -B -C 10 ./service/trino/etc/password.db your_username
+htpasswd -c -B -C 10 ./service/trino/etc/password.db your_username
 
 # 修改配置
 cp ./service/trino/config.properties.example ./service/trino/config.properties
