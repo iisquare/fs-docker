@@ -270,4 +270,5 @@ services:
       - ./service/trino/etc/password.db:/etc/trino/password.db
       - ./service/trino/etc/keystore.jks:/etc/trino/keystore.jks
       - ./service/trino/etc/config.properties:/etc/trino/config.properties
+      - ./service/trino/etc/catalog-store.properties:/etc/trino/catalog-store.properties
       - ./service/trino/etc/password-authenticator.properties:/etc/trino/password-authenticator.properties

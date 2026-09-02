@@ -4,7 +4,9 @@ node-scheduler.include-coordinator=true
 
 discovery.uri=https://localhost:8443
 
-catalog.management=${ENV:CATALOG_MANAGEMENT}
+catalog.management=dynamic
+catalog.store=file
+catalog.prune.update-interval=5s
 
 # Authentication (禁止匿名)
 http-server.authentication.type=PASSWORD
