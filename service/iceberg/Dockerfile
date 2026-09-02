@@ -1,0 +1,5 @@
+ARG ICEBERG_VERSION
+
+FROM apache/iceberg-rest-fixture:${ICEBERG_VERSION}
+
+EXPOSE 8181
