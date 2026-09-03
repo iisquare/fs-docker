@@ -177,6 +177,49 @@ SELECT * FROM iceberg.default.users WHERE status = 1;
 
 Polaris 通过 Iceberg REST Catalog 支持 view 管理；JDBC catalog 不支持 view，因此这里不要改用 Trino 的 JDBC Iceberg catalog。
 
+### 5. Trino 中的 MinIO 凭证说明
+
+Trino 的 `iceberg.properties` 中不需要配置 MinIO 账号密码。
+
+当前配置启用了 Polaris 的凭证下发能力：
+
+```properties
+iceberg.rest-catalog.vended-credentials-enabled=true
+```
+
+这意味着 Trino 不直接保存 MinIO 长期凭证，而是由 Polaris 根据 catalog 权限，向 Trino 签发临时 S3 凭证。
+
+因此 `iceberg.properties` 只需要配置：
+
+```properties
+fs.s3.enabled=true
+s3.endpoint=http://minio:9000
+s3.path-style-access=true
+s3.region=us-east-1
+```
+
+MinIO 的账号密码配置在 Polaris 服务中：
+
+```yaml
+AWS_ACCESS_KEY_ID: ${POLARIS_MINIO_USER}
+AWS_SECRET_ACCESS_KEY: ${POLARIS_MINIO_PASSWORD}
+```
+
+如果关闭 Polaris 的凭证下发能力：
+
+```properties
+iceberg.rest-catalog.vended-credentials-enabled=false
+```
+
+则需要在 Trino 的 `iceberg.properties` 中补充：
+
+```properties
+s3.aws-access-key=admin
+s3.aws-secret-key=admin888
+```
+
+当前默认配置不需要添加这两项。
+
 ## 生产环境说明
 
 当前配置把 Polaris 元数据写入项目已有 PostgreSQL 的默认 `postgres` 数据库，适合本仓库的单机/测试环境。
