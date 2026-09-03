@@ -8,6 +8,7 @@ Polaris 自身的 catalog/principal/view 等注册信息不再存放在 `/tmp`�
 
 - `POLARIS_VERSION`：Polaris 服务镜像版本。
 - `POLARIS_HTTP_PORT`：宿主机映射到 Polaris `8181` 端口的端口。
+- `POLARIS_MANAGEMENT_PORT`：宿主机映射到 Polaris `8182` 管理端口的端口。
 - `POLARIS_REALM`：Polaris realm，默认 `POLARIS`。
 - `POLARIS_CLIENT_ID` / `POLARIS_CLIENT_SECRET`：访问 Polaris REST API 的 OAuth2 client credentials。
 - `POLARIS_CATALOG_NAME`：Polaris 中创建的 Iceberg catalog 名称，默认 `iceberg`。
@@ -75,7 +76,7 @@ docker run --rm \
   -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/postgres \
   -e QUARKUS_DATASOURCE_USERNAME=postgres \
   -e QUARKUS_DATASOURCE_PASSWORD=admin888 \
-  apache/polaris-admin:${POLARIS_VERSION:-1.7.0} \
+  apache/polaris-admin-tool:${POLARIS_VERSION:-1.7.0} \
   bootstrap --realm=POLARIS --credential=POLARIS,root,admin888
 ```
 
