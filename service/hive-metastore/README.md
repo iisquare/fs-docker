@@ -92,31 +92,32 @@ Iceberg 的数据文件和 metadata 文件，因此 HMS 配置里没有 bucket �
 - 实际写入哪个 bucket，由 Iceberg 表/库的 `location` 决定。
 
 因此 `.env` 中的 `ICEBERG_MINIO_BUCKET=iceberg` 只是当前约定的 bucket 名称，没有自动接到
-`hive-metastore` 或 `iceberg_hms.properties` 中。若要把数据固定写入某个 bucket，需要显式指定位置：
+`hive-metastore` 或 `iceberg_hms.properties` 中。若要把数据固定写入某个 bucket，本项目约定：
+不在 `CREATE SCHEMA` 上指定 `location`，而是在 `CREATE MATERIALIZED VIEW` 上统一指定。
 
-方式一：在 Hive Metastore 的 `SERVICE_OPTS` 中设置默认 warehouse 目录：
+原因：`CREATE SCHEMA ... WITH (location = 's3://...')` 会让 Hive Metastore 尝试创建该外部目录，
+这需要 HMS 具备 S3A 文件系统支持；当前 HMS 只接入 MySQL 元数据，未配置 S3A，因此会报：
 
 ```text
--Dhive.metastore.warehouse.dir=s3://iceberg/warehouse
+Failed to create external path s3://iceberg/dataset for database dataset ...
 ```
 
-这样，所有未显式指定 `location` 的 schema 和 table，都会落到该 warehouse 目录下。
-
-方式二：在 Trino 中创建 schema/table 时显式指定 `location`：
+所以 schema 只负责逻辑命名空间，数据落到哪个 bucket 由物化视图的 `location` 决定：
 
 ```sql
-CREATE SCHEMA iceberg_hms.dataset
-WITH (location = 's3://iceberg/dataset');
+CREATE SCHEMA iceberg_hms.dataset;
 
-CREATE TABLE iceberg_hms.dataset.v3 (...)
-WITH (location = 's3://iceberg/dataset/v3');
+CREATE MATERIALIZED VIEW iceberg_hms.dataset.v1
+WITH (location = 's3://iceberg/dataset/v1/')
+AS
+SELECT ...;
 ```
 
-显式 `location` 的优先级高于 HMS 的 warehouse 目录。
+普通 Iceberg 表同理：在 `CREATE TABLE ... WITH (location = ...)` 上指定，不要在 schema 上指定。
 
-方式三：通过 MinIO 权限把账号限制在固定的 bucket 中（推荐用于强制执行）
+强制限制（可选）：通过 MinIO 权限把账号限制在固定的 bucket 中
 
-即使前面两种方式不配置，也可以从 MinIO 侧强制 Trino 只能访问 `iceberg` bucket。做法是创建一个
+即使 SQL 中的 `location` 写错，也可以从 MinIO 侧强制 Trino 只能访问 `iceberg` bucket。做法是创建一个
 只授权 `iceberg` bucket 的 MinIO 用户，然后把 Trino 的 S3 凭证从当前的 `admin` 换成这个专用用户。
 
 先准备策略文件 `iceberg-only-policy.json`：
@@ -172,6 +173,62 @@ s3.aws-secret-key=change-this-strong-password
 ```sql
 CREATE SCHEMA iceberg_hms.dataset;
 
-CREATE MATERIALIZED VIEW iceberg_hms.dataset.v3 AS
+CREATE MATERIALIZED VIEW iceberg_hms.dataset.v3
+WITH (location = 's3://iceberg/dataset/v3')
+AS
 SELECT ...
+```
+
+说明：`CREATE SCHEMA` 不指定 location 时，Hive Metastore 会给它一个默认的本地 warehouse 路径
+`file:/opt/hive/data/warehouse`。因此创建物化视图时必须用 `location` 把 storage table 显式指到
+MinIO；否则 storage table 会继承 schema 的 `file:` 路径，而 `iceberg_hms` 只启用了 S3，会报：
+
+```text
+No factory for location: file:/opt/hive/data/warehouse/...
+```
+
+不要在 `CREATE SCHEMA` 上指定 location（那会触发 HMS 创建 S3A 外部目录并报
+`Failed to create external path ...`），统一在物化视图上指定即可。
+
+物化视图还支持 `partitioning`、`format` 等属性，例如：
+
+```sql
+CREATE MATERIALIZED VIEW iceberg_hms.dataset.v3
+WITH (
+  location = 's3://iceberg/dataset/v3',
+  partitioning = ARRAY['created_time']
+)
+AS
+SELECT ...
+```
+
+`CREATE MATERIALIZED VIEW` 只保存定义，不会立即写入数据；执行 `REFRESH MATERIALIZED VIEW`
+后才会真正物化，这时 MinIO 中才会出现 `data/` 目录：
+
+```sql
+REFRESH MATERIALIZED VIEW iceberg_hms.dataset.v3;
+```
+
+在第一次 `REFRESH` 之前，storage table 是空的（stale），Trino 查询该视图时会回退为直接执行其
+定义里的源查询（inline），所以 `SELECT` 能返回结果，但 MinIO 里还没有物化数据。
+
+跨 catalog 支持：当前 Trino 版本（483）已支持 Iceberg 物化视图的 `AS` 查询引用其他 catalog 的
+表，例如 MySQL、其他文档库。这类跨 catalog 的物化视图刷新时走全量刷新（full refresh），不会做
+增量刷新。示例：
+
+```sql
+CREATE OR REPLACE MATERIALIZED VIEW iceberg_hms.dataset.v1
+WITH (
+  location = 's3://iceberg/dataset/v1/',
+  partitioning = ARRAY['id']
+)
+AS
+SELECT
+  t1.id,
+  t1.name,
+  t2.method
+FROM "本地文档"."fs_bi_excel"."t1" t1
+LEFT JOIN "mysql"."fs_project"."fs_bi_data_api" t2 ON t1.id = t2.id;
+
+REFRESH MATERIALIZED VIEW iceberg_hms.dataset.v1;
 ```
