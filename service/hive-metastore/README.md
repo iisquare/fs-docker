@@ -72,6 +72,101 @@ iceberg.catalog.type=hive_metastore
 hive.metastore.uri=thrift://hive-metastore:9083
 ```
 
+## MinIO bucket 说明
+
+MinIO 中的 `iceberg` bucket 是对象存储里的一个顶层命名空间。Iceberg 表的实际数据文件和
+metadata 文件都存放在这个 bucket 下，例如：
+
+```text
+s3://iceberg/dataset/v1-5360741b29e04ab4976efbf39535fffa/metadata/00000-xxxx.metadata.json
+s3://iceberg/dataset/v1-5360741b29e04ab4976efbf39535fffa/data/xxxx.parquet
+```
+
+Hive Metastore 只保存库、表、列等逻辑元数据，以及指向这些 S3 路径的 `location`。它自身不会读写
+Iceberg 的数据文件和 metadata 文件，因此 HMS 配置里没有 bucket 参数。
+
+同理，Trino 的 `iceberg_hms.properties` 里也没有 bucket 参数。该 catalog 只负责：
+
+- 通过 `hive.metastore.uri` 连接 Hive Metastore；
+- 通过 `s3.endpoint`、`s3.aws-access-key`、`s3.aws-secret-key` 访问 MinIO；
+- 实际写入哪个 bucket，由 Iceberg 表/库的 `location` 决定。
+
+因此 `.env` 中的 `ICEBERG_MINIO_BUCKET=iceberg` 只是当前约定的 bucket 名称，没有自动接到
+`hive-metastore` 或 `iceberg_hms.properties` 中。若要把数据固定写入某个 bucket，需要显式指定位置：
+
+方式一：在 Hive Metastore 的 `SERVICE_OPTS` 中设置默认 warehouse 目录：
+
+```text
+-Dhive.metastore.warehouse.dir=s3://iceberg/warehouse
+```
+
+这样，所有未显式指定 `location` 的 schema 和 table，都会落到该 warehouse 目录下。
+
+方式二：在 Trino 中创建 schema/table 时显式指定 `location`：
+
+```sql
+CREATE SCHEMA iceberg_hms.dataset
+WITH (location = 's3://iceberg/dataset');
+
+CREATE TABLE iceberg_hms.dataset.v3 (...)
+WITH (location = 's3://iceberg/dataset/v3');
+```
+
+显式 `location` 的优先级高于 HMS 的 warehouse 目录。
+
+方式三：通过 MinIO 权限把账号限制在固定的 bucket 中（推荐用于强制执行）
+
+即使前面两种方式不配置，也可以从 MinIO 侧强制 Trino 只能访问 `iceberg` bucket。做法是创建一个
+只授权 `iceberg` bucket 的 MinIO 用户，然后把 Trino 的 S3 凭证从当前的 `admin` 换成这个专用用户。
+
+先准备策略文件 `iceberg-only-policy.json`：
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListMultipartUploadParts",
+        "s3:AbortMultipartUpload"
+      ],
+      "Resource": [
+        "arn:aws:s3:::iceberg",
+        "arn:aws:s3:::iceberg/*"
+      ]
+    }
+  ]
+}
+```
+
+在宿主机使用 `mc` 创建并绑定策略：
+
+```bash
+mc alias set minio http://localhost:9000 admin admin888
+
+mc admin policy create minio iceberg-only iceberg-only-policy.json
+mc admin user add minio iceberg-trino 'change-this-strong-password'
+mc admin policy attach minio iceberg-only --user iceberg-trino
+```
+
+然后把 Trino 的 `iceberg_hms.properties` 中的 S3 凭证替换为这个专用用户：
+
+```properties
+s3.aws-access-key=iceberg-trino
+s3.aws-secret-key=change-this-strong-password
+```
+
+这样即使 SQL 中把 `location` 写成其他 bucket，Trino 也会因 MinIO 返回 `AccessDenied` 而无法写入，
+从而在存储层强制限制只能使用 `iceberg` bucket。
+
+注意：bucket 本身需要在 MinIO 中提前创建，MinIO 不会自动创建 bucket。
+
 在 Trino 中创建物化视图：
 
 ```sql

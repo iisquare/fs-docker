@@ -8,6 +8,9 @@ USER root
 ADD https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar \
     /opt/hive/lib/mysql-connector-j-8.4.0.jar
 
+RUN chmod 0644 /opt/hive/lib/mysql-connector-j-8.4.0.jar && \
+    chown hive:hive /opt/hive/lib/mysql-connector-j-8.4.0.jar
+
 USER hive
 
 EXPOSE 9083
