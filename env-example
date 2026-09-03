@@ -90,7 +90,7 @@ ICEBERG_MINIO_REGION=us-east-1
 HIVE_VERSION=4.2.1
 HIVE_METASTORE_PORT=9083
 HIVE_METASTORE_DB_NAME=hive_metastore
-HIVE_METASTORE_DB_USER=hive
+HIVE_METASTORE_DB_USER=root
 HIVE_METASTORE_DB_PASSWORD=admin888
 HIVE_METASTORE_JDBC_URL=jdbc:mysql://mysql:3306/hive_metastore?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
 
