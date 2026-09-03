@@ -13,26 +13,30 @@ services:
     command: server --console-address ':9001' /data
     volumes:
       - ${DATA_DIR}/minio/data:/data
-  iceberg:
-    build:
-      context: ./service/iceberg
-      args:
-        - ICEBERG_VERSION=${ICEBERG_VERSION}
+  polaris:
+    image: apache/polaris:${POLARIS_VERSION}
     environment:
-      CATALOG_WAREHOUSE: s3://${ICEBERG_MINIO_BUCKET}
-      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
-      CATALOG_S3_ENDPOINT: http://minio:9000
-      CATALOG_S3_PATH__STYLE__ACCESS: "true"
-      CATALOG_S3_REGION: us-east-1
-      CATALOG_S3_ACCESS__KEY__ID: ${MINIO_ROOT_USER}
-      CATALOG_S3_SECRET__ACCESS__KEY: ${MINIO_ROOT_PASSWORD}
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      AWS_REGION: us-east-1
+      POLARIS_BOOTSTRAP_CREDENTIALS: ${POLARIS_REALM},${POLARIS_CLIENT_ID},${POLARIS_CLIENT_SECRET}
+      polaris.realm-context.realms: ${POLARIS_REALM}
+      POLARIS_PERSISTENCE_TYPE: relational-jdbc
+      POLARIS_PERSISTENCE_RELATIONAL_JDBC_DATABASE_TYPE: postgresql
+      POLARIS_PERSISTENCE_RELATIONAL_JDBC_MAX_RETRIES: 5
+      POLARIS_PERSISTENCE_RELATIONAL_JDBC_INITIAL_DELAY_IN_MS: 100
+      POLARIS_PERSISTENCE_RELATIONAL_JDBC_MAX_DURATION_IN_MS: 5000
+      QUARKUS_DATASOURCE_DB_KIND: postgresql
+      QUARKUS_DATASOURCE_JDBC_URL: ${POLARIS_JDBC_URL}
+      QUARKUS_DATASOURCE_USERNAME: ${POLARIS_JDBC_USER}
+      QUARKUS_DATASOURCE_PASSWORD: ${POLARIS_JDBC_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${POLARIS_MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${POLARIS_MINIO_PASSWORD}
+      AWS_REGION: ${ICEBERG_MINIO_REGION}
+      quarkus.otel.sdk.disabled: "true"
+      polaris.readiness.ignore-severe-issues: "true"
     ports:
-      - "${BIND_ADDRESS}${BIND_COLON}${ICEBERG_HTTP_PORT}:8181"
+      - "${BIND_ADDRESS}${BIND_COLON}${POLARIS_HTTP_PORT}:8181"
     depends_on:
       - minio
+      - postgres
   neo4j:
     build:
       context: ./service/neo4j
