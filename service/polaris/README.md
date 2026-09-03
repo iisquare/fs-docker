@@ -18,6 +18,7 @@ Polaris 自身的 catalog/principal/view 等注册信息不再存放在 `/tmp`�
 - `POLARIS_MINIO_USER` / `POLARIS_MINIO_PASSWORD`：Polaris 访问 MinIO 时使用的凭证。
 - `ICEBERG_MINIO_BUCKET`：Iceberg warehouse 使用的 MinIO bucket。
 - `ICEBERG_MINIO_REGION`：MinIO S3 兼容层使用的 region。
+- `polaris.features.DROP_WITH_PURGE_ENABLED`：允许 Polaris 删除 view/table 时执行 purge，已在 `docker-compose.yml` 中默认开启。
 
 ## 默认配置
 
@@ -176,6 +177,19 @@ SELECT * FROM iceberg.default.users WHERE status = 1;
 ```
 
 Polaris 通过 Iceberg REST Catalog 支持 view 管理；JDBC catalog 不支持 view，因此这里不要改用 Trino 的 JDBC Iceberg catalog。
+
+### 物化视图
+
+Polaris REST Catalog 当前不支持 Trino 的 Materialized View。需要物化视图时，请使用新增的 `iceberg_hms` catalog：
+
+```sql
+CREATE SCHEMA iceberg_hms.dataset;
+
+CREATE MATERIALIZED VIEW iceberg_hms.dataset.v3 AS
+SELECT ...
+```
+
+`iceberg_hms` 使用独立部署的 Hive Metastore，与 Polaris 的 `iceberg` catalog 并存。
 
 ### 5. Trino 中的 MinIO 凭证说明
 

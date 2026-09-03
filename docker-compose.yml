@@ -33,6 +33,7 @@ services:
       AWS_ACCESS_KEY_ID: ${POLARIS_MINIO_USER}
       AWS_SECRET_ACCESS_KEY: ${POLARIS_MINIO_PASSWORD}
       AWS_REGION: ${ICEBERG_MINIO_REGION}
+      polaris.features.DROP_WITH_PURGE_ENABLED: "true"
       quarkus.otel.sdk.disabled: "true"
       polaris.readiness.ignore-severe-issues: "true"
     ports:
@@ -66,6 +67,26 @@ services:
     volumes:
       - ${DATA_DIR}/postgres/data:/var/lib/postgresql/data
       - ${DATA_DIR}/postgres/archive:/var/lib/postgresql/archive
+  hive-metastore:
+    build:
+      context: ./service/hive-metastore
+      args:
+        - HIVE_VERSION=${HIVE_VERSION}
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: mysql
+      SERVICE_OPTS: >-
+        -Xmx1G
+        -Djavax.jdo.option.ConnectionDriverName=com.mysql.cj.jdbc.Driver
+        -Djavax.jdo.option.ConnectionURL=${HIVE_METASTORE_JDBC_URL}
+        -Djavax.jdo.option.ConnectionUserName=${HIVE_METASTORE_DB_USER}
+        -Djavax.jdo.option.ConnectionPassword=${HIVE_METASTORE_DB_PASSWORD}
+        -Ddatanucleus.schema.autoCreateAll=true
+    ports:
+      - "${BIND_ADDRESS}${BIND_COLON}${HIVE_METASTORE_PORT}:9083"
+    depends_on:
+      mysql:
+        condition: service_started
   openresty:
     build:
       context: ./service/openresty
