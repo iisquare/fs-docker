@@ -23,6 +23,8 @@
 -Djavax.jdo.option.ConnectionUserName=${HIVE_METASTORE_DB_USER}
 -Djavax.jdo.option.ConnectionPassword=${HIVE_METASTORE_DB_PASSWORD}
 -Ddatanucleus.schema.autoCreateAll=true
+-Ddatanucleus.rdbms.mysql.characterSet=utf8mb4
+-Ddatanucleus.rdbms.mysql.collation=utf8mb4_bin
 ```
 
 ## 手动初始化 MySQL
@@ -44,7 +46,7 @@ docker compose exec mysql mysql -uroot -p${MYSQL_ROOT_PASSWORD}
 
 ```sql
 CREATE DATABASE IF NOT EXISTS `hive_metastore`
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 CREATE USER IF NOT EXISTS 'hive'@'%' IDENTIFIED BY 'admin888';
 
@@ -59,8 +61,50 @@ FLUSH PRIVILEGES;
 HIVE_METASTORE_DB_NAME=hive_metastore
 HIVE_METASTORE_DB_USER=hive
 HIVE_METASTORE_DB_PASSWORD=admin888
-HIVE_METASTORE_JDBC_URL=jdbc:mysql://mysql:3306/hive_metastore?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+HIVE_METASTORE_JDBC_URL=jdbc:mysql://mysql:3306/hive_metastore?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_bin
 ```
+
+## MySQL 字符集与中文名称问题
+
+Hive Metastore 在 MySQL 下由 DataNucleus 自动建表时，如果不显式指定字符集，生成出来的表会使用
+`latin1` / `latin1_bin`，而不是数据库的 `utf8mb4` 默认字符集。因此可能出现：
+
+- 数据库是 `utf8mb4`，但自动创建的表是 `latin1`；
+- 创建、查询或删除中文库名、中文表名、中文视图名时变慢甚至超时；
+- 中文分区值、中文注释显示为 `??` 或被截断。
+
+原因是：JDBC URL 里的 `useUnicode`、`characterEncoding` 只控制 JDBC 连接会话的编码，不能决定
+DataNucleus 生成的 `CREATE TABLE` 使用什么 `CHARSET` 和 `COLLATE`。表结构的字符集由下面两个
+DataNucleus 参数控制：
+
+```text
+-Ddatanucleus.rdbms.mysql.characterSet=utf8mb4
+-Ddatanucleus.rdbms.mysql.collation=utf8mb4_bin
+```
+
+因此需要同时配置：
+
+1. `SERVICE_OPTS` 中加入上述两个 DataNucleus 参数；
+2. JDBC URL 中加入 `characterEncoding=UTF-8&connectionCollation=utf8mb4_bin`；
+3. 初始化数据库时使用 `utf8mb4` 和 `utf8mb4_bin`。
+
+`useUnicode=true` 可以保留，但在 MySQL Connector/J 8 中它不是关键参数，真正影响连接层字符集的是
+`characterEncoding` 和 `connectionCollation`。
+
+注意：修改以上配置只会影响以后新建的表。已经自动创建的 `latin1` 表不会自动变成 `utf8mb4`，需要
+手动迁移，或者在元数据不重要时删除数据库后让 Hive 重新创建。
+
+如果只需解决中文视图名删除超时，可以对关键表执行：
+
+```sql
+ALTER TABLE `hive_metastore`.`DBS`
+  CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+
+ALTER TABLE `hive_metastore`.`TBLS`
+  CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+```
+
+如果需要保留现有元数据并完整迁移所有表，请先备份数据库，然后在维护窗口执行字符集转换。
 
 ## Trino 接入
 
