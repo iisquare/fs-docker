@@ -100,7 +100,7 @@ CLIENT_ID=root
 CLIENT_SECRET=admin888
 REALM=POLARIS
 
-TOKEN=$(curl -sS --fail-with-body \
+TOKEN=$(curl -sS --fail \
   -u "${CLIENT_ID}:${CLIENT_SECRET}" \
   -H "Polaris-Realm: ${REALM}" \
   -d grant_type=client_credentials \
@@ -111,7 +111,7 @@ TOKEN=$(curl -sS --fail-with-body \
 创建 `iceberg` catalog：
 
 ```bash
-curl -sS --fail-with-body -X POST \
+curl -sS --fail -X POST \
   "${POLARIS_HOST}/api/management/v1/catalogs" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Polaris-Realm: ${REALM}" \
@@ -139,7 +139,7 @@ curl -sS --fail-with-body -X POST \
 如果 catalog 已经存在，创建命令会返回冲突，可以跳过创建，继续执行授权：
 
 ```bash
-curl -sS --fail-with-body -X PUT \
+curl -vvv -sS --fail -X PUT \
   "${POLARIS_HOST}/api/management/v1/catalogs/iceberg/catalog-roles/catalog_admin/grants" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Polaris-Realm: ${REALM}" \
