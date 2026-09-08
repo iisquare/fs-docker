@@ -83,3 +83,19 @@ mysqldump: Got error: 2059: Authentication plugin 'caching_sha2_password' cannot
 选择MySQL Community Server地址，下载Windows (x86, 64-bit), ZIP Archive并提取压缩包bin目录，
 全部解压到C:\Users\用户名\AppData\Roaming\DBeaverData\drivers\clients\mysql\win目录，避免依赖缺失。
 ```
+- 客户端查询乱码问题
+```
+# 查看当前的字符集配置
+SHOW VARIABLES LIKE 'character_set_%';
+# 临时解决（快速测试）
+SET NAMES 'utf8mb4';
+# 连接时指定（推荐）
+mysql -u 用户名 -p --default-character-set=utf8mb4
+# 永久解决（修改配置文件）
+[client]
+default-character-set = utf8mb4
+
+[mysqld]
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+```
