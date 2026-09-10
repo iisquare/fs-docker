@@ -75,6 +75,51 @@ POST /索引名称/_mapping
   }
 }
 ```
+- 精确检索
+Trino 的 Elasticsearch connector 只对 keyword、数值、日期、布尔类型的列做谓词下推。
+```json
+{
+  "properties": {
+    "name": {
+      "type": "text",
+      "fields": {
+        "keyword": { "type": "keyword", "ignore_above": 256 }
+      }
+    },
+  }
+}
+```
+mapping 里的 name.keyword 是 ES 的 multi-fields 子字段，Trino connector 读取 mapping 时不会把它暴露成独立的 Trino 列，无法直接检索。
+建议增加专门用于精确查询的字段，例如：
+```json
+{
+  "properties": {
+    "name_keyword": {
+      "type": "keyword",
+      "ignore_above": 256
+    }
+  }
+}
+```
+对已有数据做一次回填：
+POST /etl_xxx/_update_by_query
+```json
+{
+  "script": {
+    "lang": "painless",
+    "source": "if (ctx._source.name != null && ctx._source.name_keyword == null) { ctx._source.name_keyword =
+    ctx._source.name; }"
+  }
+}
+```
+如果暂时不能改索引结构，可以利用 Trino ES connector 的“表名后带全文查询”语法：
+```sql
+SELECT "address", "name"
+FROM "es"."default"."etl_xxx:name.keyword:(name.keyword:A AND f2.keyword:B) OR f3:[100 TO *]"
+WHERE "number_field" >= 10000000 AND "date_field" >= DATE '2020-01-01'
+LIMIT 10
+```
+这个查询会在 ES 侧执行 query_string，把 name.keyword 的匹配下推到 ES。但这是绕过性质的用法，不是标准的谓词下推。
 
 ## 选型建议
 
