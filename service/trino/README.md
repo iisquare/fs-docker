@@ -115,7 +115,7 @@ POST /etl_xxx/_update_by_query
 如果暂时不能改索引结构，可以利用 Trino ES connector 的“表名后带全文查询”语法：
 ```sql
 SELECT "address", "name"
-FROM "es"."default"."etl_xxx:name.keyword:(name.keyword:A AND f2.keyword:B) OR f3:[100 TO *]"
+FROM "es"."default"."etl_xxx:(name.keyword:A AND f2.keyword:B) OR f3:[100 TO *]"
 WHERE "number_field" >= 10000000 AND "date_field" >= DATE '2020-01-01'
 LIMIT 10
 ```
