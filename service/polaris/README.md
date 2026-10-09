@@ -1,6 +1,6 @@
 # Apache Polaris Iceberg Catalog
 
-使用 Apache Polaris 作为 Iceberg REST Catalog，Iceberg 的表数据和元数据文件保存在 MinIO 中。
+使用 Apache Polaris 作为 Iceberg REST Catalog，Iceberg 的表数据和元数据文件保存在 RustFS 中。
 
 Polaris 自身的 catalog/principal/view 等注册信息不再存放在 `/tmp`，而是持久化到项目已有 PostgreSQL 服务中。
 
@@ -15,9 +15,9 @@ Polaris 自身的 catalog/principal/view 等注册信息不再存放在 `/tmp`�
 - `POLARIS_JDBC_URL`：Polaris 元数据使用的 JDBC 地址，默认使用已有 PostgreSQL。
 - `POLARIS_JDBC_USER`：Polaris 元数据使用的 PostgreSQL 用户。
 - `POLARIS_JDBC_PASSWORD`：Polaris 元数据使用的 PostgreSQL 密码。
-- `POLARIS_MINIO_USER` / `POLARIS_MINIO_PASSWORD`：Polaris 访问 MinIO 时使用的凭证。
-- `ICEBERG_MINIO_BUCKET`：Iceberg warehouse 使用的 MinIO bucket。
-- `ICEBERG_MINIO_REGION`：MinIO S3 兼容层使用的 region。
+- `POLARIS_RUSTFS_USER` / `POLARIS_RUSTFS_PASSWORD`：Polaris 访问 RustFS 时使用的凭证。
+- `ICEBERG_RUSTFS_BUCKET`：Iceberg warehouse 使用的 RustFS bucket。
+- `ICEBERG_RUSTFS_REGION`：RustFS S3 兼容层使用的 region。
 - `polaris.features.DROP_WITH_PURGE_ENABLED`：允许 Polaris 删除 view/table 时执行 purge，已在 `docker-compose.yml` 中默认开启。
 
 ## 默认配置
@@ -25,37 +25,37 @@ Polaris 自身的 catalog/principal/view 等注册信息不再存放在 `/tmp`�
 - Polaris REST Catalog 地址：`http://<host>:${POLARIS_HTTP_PORT}`
 - Trino 中的 Iceberg catalog 名称：`iceberg`
 - Warehouse：`s3://iceberg`
-- MinIO 端点：`http://minio:9000`
+- RustFS 端点：`http://rustfs:9000`
 - 访问模式：`path-style-access=true`
 - Polaris 元数据：PostgreSQL
 
 ## 使用说明
 
-### 1. 手动创建 MinIO bucket
+### 1. 手动创建 RustFS bucket
 
-MinIO 不会自动创建 Polaris/Iceberg 使用的 bucket。先启动 MinIO：
+RustFS 不会自动创建 Polaris/Iceberg 使用的 bucket。先启动 RustFS：
 
 ```bash
-docker compose up -d minio
+docker compose up -d rustfs
 ```
 
-通过 MinIO 控制台 `http://<host>:9001` 创建名为 `iceberg` 的 bucket。
+通过 RustFS 控制台 `http://<host>:9001` 创建名为 `iceberg` 的 bucket。
 
 也可以在宿主机使用 `mc`：
 
 ```bash
-mc alias set minio http://localhost:9000 admin admin888
-mc mb --ignore-existing minio/iceberg
+mc alias set rustfs http://localhost:9000 admin admin888
+mc mb --ignore-existing rustfs/iceberg
 ```
 
-`mc alias set` 的作用是为 `mc` 客户端注册一个名为 `minio` 的别名，后续 `mc` 命令都通过这个别名访问对应的 MinIO 服务，而不需要每次都重复输入地址和账号密码。
+`mc alias set` 的作用是为 `mc` 客户端注册一个名为 `rustfs` 的别名，后续 `mc` 命令都通过这个别名访问对应的 RustFS 服务，而不需要每次都重复输入地址和账号密码。
 
 ### 2. 启动依赖服务
 
-确认 bucket 已创建后，启动 PostgreSQL 和 MinIO：
+确认 bucket 已创建后，启动 PostgreSQL 和 RustFS：
 
 ```bash
-docker compose up -d minio postgres
+docker compose up -d rustfs postgres
 ```
 
 ### 3. 手动初始化 Polaris
@@ -129,7 +129,7 @@ curl -sS --fail -X POST \
       "storageConfigInfo": {
         "storageType": "S3",
         "endpoint": "http://localhost:9000",
-        "endpointInternal": "http://minio:9000",
+        "endpointInternal": "http://rustfs:9000",
         "pathStyleAccess": true,
         "region": "us-east-1"
       }
@@ -191,9 +191,9 @@ SELECT ...
 
 `iceberg_hms` 使用独立部署的 Hive Metastore，与 Polaris 的 `iceberg` catalog 并存。
 
-### 5. Trino 中的 MinIO 凭证说明
+### 5. Trino 中的 RustFS 凭证说明
 
-Trino 的 `iceberg.properties` 中不需要配置 MinIO 账号密码。
+Trino 的 `iceberg.properties` 中不需要配置 RustFS 账号密码。
 
 当前配置启用了 Polaris 的凭证下发能力：
 
@@ -201,22 +201,22 @@ Trino 的 `iceberg.properties` 中不需要配置 MinIO 账号密码。
 iceberg.rest-catalog.vended-credentials-enabled=true
 ```
 
-这意味着 Trino 不直接保存 MinIO 长期凭证，而是由 Polaris 根据 catalog 权限，向 Trino 签发临时 S3 凭证。
+这意味着 Trino 不直接保存 RustFS 长期凭证，而是由 Polaris 根据 catalog 权限，向 Trino 签发临时 S3 凭证。
 
 因此 `iceberg.properties` 只需要配置：
 
 ```properties
 fs.s3.enabled=true
-s3.endpoint=http://minio:9000
+s3.endpoint=http://rustfs:9000
 s3.path-style-access=true
 s3.region=us-east-1
 ```
 
-MinIO 的账号密码配置在 Polaris 服务中：
+RustFS 的账号密码配置在 Polaris 服务中：
 
 ```yaml
-AWS_ACCESS_KEY_ID: ${POLARIS_MINIO_USER}
-AWS_SECRET_ACCESS_KEY: ${POLARIS_MINIO_PASSWORD}
+AWS_ACCESS_KEY_ID: ${POLARIS_RUSTFS_USER}
+AWS_SECRET_ACCESS_KEY: ${POLARIS_RUSTFS_PASSWORD}
 ```
 
 如果关闭 Polaris 的凭证下发能力：
@@ -242,5 +242,5 @@ s3.aws-secret-key=admin888
 
 - 为 Polaris 创建独立数据库和独立数据库账号。
 - 使用独立、受控的 `POLARIS_CLIENT_ID` / `POLARIS_CLIENT_SECRET`。
-- 为 PostgreSQL 和 MinIO 配置备份与高可用。
+- 为 PostgreSQL 和 RustFS 配置备份与高可用。
 - 不要将 Polaris 的 `8181` 端口直接暴露到公网。

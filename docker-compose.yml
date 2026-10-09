@@ -1,18 +1,22 @@
 services:
-  minio:
+  rustfs:
     build:
-      context: ./service/minio
+      context: ./service/rustfs
       args:
-        - MINIO_VERSION=${MINIO_VERSION}
+        - RUSTFS_VERSION=${RUSTFS_VERSION}
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
     ports:
-      - "${BIND_ADDRESS}${BIND_COLON}${MINIO_HTTP_PORT}:9000"
-      - "${BIND_ADDRESS}${BIND_COLON}${MINIO_CONSOLE_PORT}:9001"
-    command: server --console-address ':9001' /data
+      - "${BIND_ADDRESS}${BIND_COLON}${RUSTFS_API_PORT}:9000"
+      - "${BIND_ADDRESS}${BIND_COLON}${RUSTFS_CONSOLE_PORT}:9001"
     volumes:
-      - ${DATA_DIR}/minio/data:/data
+      - ${DATA_DIR}/rustfs/data:/data
+      - ${DATA_DIR}/rustfs/logs:/logs
   polaris:
     build:
       context: ./service/polaris
@@ -30,9 +34,9 @@ services:
       QUARKUS_DATASOURCE_JDBC_URL: ${POLARIS_JDBC_URL}
       QUARKUS_DATASOURCE_USERNAME: ${POLARIS_JDBC_USER}
       QUARKUS_DATASOURCE_PASSWORD: ${POLARIS_JDBC_PASSWORD}
-      AWS_ACCESS_KEY_ID: ${POLARIS_MINIO_USER}
-      AWS_SECRET_ACCESS_KEY: ${POLARIS_MINIO_PASSWORD}
-      AWS_REGION: ${ICEBERG_MINIO_REGION}
+      AWS_ACCESS_KEY_ID: ${POLARIS_RUSTFS_USER}
+      AWS_SECRET_ACCESS_KEY: ${POLARIS_RUSTFS_PASSWORD}
+      AWS_REGION: ${ICEBERG_RUSTFS_REGION}
       polaris.features.DROP_WITH_PURGE_ENABLED: "true"
       quarkus.otel.sdk.disabled: "true"
       polaris.readiness.ignore-severe-issues: "true"
@@ -40,7 +44,7 @@ services:
       - "${BIND_ADDRESS}${BIND_COLON}${POLARIS_HTTP_PORT}:8181"
       - "${BIND_ADDRESS}${BIND_COLON}${POLARIS_MANAGEMENT_PORT}:8182"
     depends_on:
-      - minio
+      - rustfs
       - postgres
   neo4j:
     build:
